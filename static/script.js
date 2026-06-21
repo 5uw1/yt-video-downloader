@@ -30,8 +30,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeSettings = document.getElementById('closeSettings');
     const saveSettings = document.getElementById('saveSettings');
     const downloadPathInput = document.getElementById('downloadPath');
+    const historyList = document.getElementById('historyList');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 
     let currentVideoData = null;
+    let clientId = localStorage.getItem('clientId');
+    if (!clientId) {
+        clientId = crypto.randomUUID();
+        localStorage.setItem('clientId', clientId);
+    }
 
     // Theme Management
     const toggleTheme = () => {
@@ -128,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Stream Video
-    streamBtn.addEventListener('click', () => {
+    streamBtn.addEventListener('click', async () => {
         if (!currentVideoData) {
             showStatus('Video data not available', 'error');
             return;
@@ -141,6 +148,25 @@ document.addEventListener('DOMContentLoaded', () => {
             showStatus('Stream URL not available', 'error');
             return;
         }
+
+        // Record history for stream
+        try {
+            await fetch('/api/history', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    client_id: clientId,
+                    url: currentVideoData.url,
+                    title: currentVideoData.title,
+                    thumbnail: currentVideoData.thumbnail,
+                    format: format,
+                    action: 'stream'
+                })
+            });
+            loadHistory();
+        } catch (err) {
+            console.error('Failed to record stream history', err);
+        }
         
         showPlayback(url, format, true);
     });
@@ -149,24 +175,32 @@ document.addEventListener('DOMContentLoaded', () => {
     downloadBtn.addEventListener('click', async () => {
         const format = document.querySelector('input[name="format"]:checked').value;
         const url = urlInput.value.trim();
+        const title = currentVideoData ? currentVideoData.title : '';
+        const thumbnail = currentVideoData ? currentVideoData.thumbnail : '';
         
         showStatus('Preparing download...', 'info');
-        window.location.href = `/download?url=${encodeURIComponent(url)}&format=${format}&action=download`;
+        window.location.href = `/download?url=${encodeURIComponent(url)}&format=${format}&action=download&client_id=${clientId}&title=${encodeURIComponent(title)}&thumbnail=${encodeURIComponent(thumbnail)}`;
+        
+        // Refresh history after a short delay since download is a navigation
+        setTimeout(loadHistory, 2000);
     });
 
     // Save to Server
     saveServerBtn.addEventListener('click', async () => {
         const format = document.querySelector('input[name="format"]:checked').value;
         const url = urlInput.value.trim();
+        const title = currentVideoData ? currentVideoData.title : '';
+        const thumbnail = currentVideoData ? currentVideoData.thumbnail : '';
         
         showStatus('Saving to server...', 'info');
         try {
-            const response = await fetch(`/download?url=${encodeURIComponent(url)}&format=${format}&action=save`);
+            const response = await fetch(`/download?url=${encodeURIComponent(url)}&format=${format}&action=save&client_id=${clientId}&title=${encodeURIComponent(title)}&thumbnail=${encodeURIComponent(thumbnail)}`);
             const data = await response.json();
             
             if (data.success) {
                 showStatus(`Saved successfully: ${data.filename}`, 'success');
                 loadFiles();
+                loadHistory();
                 showPlayback(data.filename, format);
             } else {
                 showStatus(`Error: ${data.error}`, 'error');
@@ -321,5 +355,74 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const loadHistory = async () => {
+        try {
+            const response = await fetch(`/api/history?client_id=${clientId}`);
+            const history = await response.json();
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<p class="text-gray-500 italic">No history yet.</p>';
+                return;
+            }
+
+            historyList.innerHTML = '';
+            history.forEach(item => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'flex space-x-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer group';
+                
+                const thumb = document.createElement('img');
+                thumb.src = item.thumbnail;
+                thumb.className = 'w-24 h-14 object-cover rounded';
+                
+                const info = document.createElement('div');
+                info.className = 'flex-1 min-w-0';
+                
+                const title = document.createElement('h4');
+                title.className = 'text-sm font-bold truncate';
+                title.textContent = item.title;
+                
+                const meta = document.createElement('p');
+                meta.className = 'text-xs text-gray-500 dark:text-gray-400';
+                const date = new Date(item.timestamp).toLocaleDateString();
+                meta.textContent = `${item.action.toUpperCase()} • ${item.format} • ${date}`;
+                
+                info.appendChild(title);
+                info.appendChild(meta);
+                
+                itemEl.appendChild(thumb);
+                itemEl.appendChild(info);
+                
+                itemEl.onclick = async () => {
+                    urlInput.value = item.url;
+                    // If it was a saved file, try to play it directly
+                    if (item.action === 'save' && item.filename) {
+                        showPlayback(item.filename, item.format);
+                    } else {
+                        // Otherwise, get info first
+                        getInfoBtn.click();
+                    }
+                };
+                
+                historyList.appendChild(itemEl);
+            });
+        } catch (err) {
+            console.error('Failed to load history:', err);
+        }
+    };
+
+    clearHistoryBtn.addEventListener('click', async () => {
+        if (confirm('Are you sure you want to clear your history?')) {
+            try {
+                const response = await fetch(`/api/history?client_id=${clientId}`, { method: 'DELETE' });
+                if (response.ok) {
+                    loadHistory();
+                }
+            } catch (err) {
+                showStatus('Failed to clear history', 'error');
+            }
+        }
+    });
+
     loadFiles();
+    loadHistory();
 });

@@ -8,6 +8,7 @@ import shutil
 import httpx
 from downloader import Downloader
 from config_manager import get_setting, load_config, save_config
+import history_manager
 
 app = FastAPI()
 downloader = Downloader()
@@ -35,14 +36,31 @@ async def get_info(url: str = Query(...)):
         raise HTTPException(status_code=400, detail=info["error"])
     return info
 
+class HistoryEntry(BaseModel):
+    client_id: str
+    url: str
+    title: str
+    thumbnail: str
+    format: str
+    action: str
+    filename: str = None
+
 @app.get("/download")
 async def download(
     url: str = Query(...), 
     format: str = Query("video"), 
-    action: str = Query("download")
+    action: str = Query("download"),
+    client_id: str = Query(None),
+    title: str = Query(None),
+    thumbnail: str = Query(None)
 ):
     if action == "save":
         result = downloader.download(url, format_type=format)
+        if result["success"] and client_id:
+            history_manager.add_to_history(
+                client_id, url, title or os.path.basename(result["filename"]), 
+                thumbnail, format, "save", os.path.basename(result["filename"])
+            )
         return result
     else:
         # For direct download, we download to a temp folder first then stream
@@ -54,6 +72,11 @@ async def download(
         if result["success"]:
             file_path = result["filename"]
             filename = os.path.basename(file_path)
+            if client_id:
+                history_manager.add_to_history(
+                    client_id, url, title or filename, 
+                    thumbnail, format, "download"
+                )
             return FileResponse(
                 path=file_path, 
                 filename=filename
@@ -107,6 +130,22 @@ async def delete_file(filename: str):
         os.remove(file_path)
         return {"success": True}
     raise HTTPException(status_code=404, detail="File not found")
+
+@app.get("/api/history")
+async def get_history(client_id: str = Query(...)):
+    return history_manager.get_client_history(client_id)
+
+@app.post("/api/history")
+async def add_history(entry: HistoryEntry):
+    return history_manager.add_to_history(
+        entry.client_id, entry.url, entry.title, 
+        entry.thumbnail, entry.format, entry.action, entry.filename
+    )
+
+@app.delete("/api/history")
+async def clear_history(client_id: str = Query(...)):
+    history_manager.clear_client_history(client_id)
+    return {"success": True}
 
 @app.get("/settings")
 async def get_settings():
