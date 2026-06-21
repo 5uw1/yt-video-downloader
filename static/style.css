@@ -1,0 +1,35 @@
+/* Custom styles for YouTube Downloader */
+
+.transition-colors {
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+#status.error {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.dark #status.error {
+    background-color: #7f1d1d;
+    color: #fecaca;
+}
+
+#status.success {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.dark #status.success {
+    background-color: #064e3b;
+    color: #d1fae5;
+}
+
+#status.info {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.dark #status.info {
+    background-color: #1e3a8a;
+    color: #dbeafe;
+}

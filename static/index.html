@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Downloader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/style.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: '#1a202c',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-200">
+    <div class="container mx-auto px-4 py-8 max-w-2xl">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mr-2 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+                </svg>
+                YT Downloader
+            </h1>
+            <div class="flex items-center space-x-4">
+                <button id="settingsBtn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </button>
+                <button id="themeToggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                    <svg id="sunIcon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 5a7 7 0 100 14 7 7 0 000-14z" />
+                    </svg>
+                    <svg id="moonIcon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
+            <div class="mb-6">
+                <label for="url" class="block text-sm font-medium mb-2">YouTube URL</label>
+                <div class="flex space-x-2">
+                    <input type="text" id="url" placeholder="https://www.youtube.com/watch?v=..." class="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button id="pasteBtn" class="bg-gray-200 dark:bg-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        Paste
+                    </button>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <span class="block text-sm font-medium mb-2">Format</span>
+                <div class="flex space-x-4">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="radio" name="format" value="video" checked class="hidden peer">
+                        <div class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg peer-checked:bg-blue-500 peer-checked:text-white transition-colors">Video (MP4)</div>
+                    </label>
+                    <label class="flex items-center cursor-pointer">
+                        <input type="radio" name="format" value="audio" class="hidden peer">
+                        <div class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg peer-checked:bg-blue-500 peer-checked:text-white transition-colors">Audio (MP3)</div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex flex-col space-y-3">
+                <button id="getInfoBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Get Info
+                </button>
+                <div id="actionButtons" class="hidden grid grid-cols-2 gap-4">
+                    <button id="downloadBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Download
+                    </button>
+                    <button id="saveServerBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                        </svg>
+                        Save to Server
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="videoInfo" class="hidden bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden mb-8">
+            <img id="thumbnail" src="" alt="Thumbnail" class="w-full h-48 object-cover">
+            <div class="p-6">
+                <h2 id="videoTitle" class="text-xl font-bold mb-2"></h2>
+                <p id="videoUploader" class="text-gray-600 dark:text-gray-400 mb-1"></p>
+                <p id="videoDuration" class="text-gray-600 dark:text-gray-400"></p>
+            </div>
+        </div>
+
+        <div id="playback" class="hidden bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold">Playback</h3>
+                <button id="closePlayback" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div id="mediaContainer" class="w-full">
+                <!-- Video or Audio element will be inserted here -->
+            </div>
+        </div>
+
+        <div id="status" class="hidden p-4 rounded-lg text-center font-medium"></div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+            <h2 class="text-2xl font-bold mb-4">Settings</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="downloadPath" class="block text-sm font-medium mb-1">Server Download Path</label>
+                    <input type="text" id="downloadPath" class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                </div>
+            </div>
+            <div class="mt-8 flex justify-end space-x-3">
+                <button id="closeSettings" class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:underline">Cancel</button>
+                <button id="saveSettings" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
