@@ -61,7 +61,7 @@ services:
       - "8000:8000"
     volumes:
       - ./downloads:/app/downloads
-      - ./config.json:/app/config.json
+      - ./config:/app/config
     restart: unless-stopped
 ```
 
@@ -86,7 +86,7 @@ docker compose up -d
 
 ## Configuration
 
-Settings are stored in `config.json` on the server. You can modify the download path through the UI settings menu.
+Settings are stored in `config/config.json` on the server. You can modify the download path through the UI settings menu.
 
 ## License
 

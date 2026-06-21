@@ -27,8 +27,8 @@ RUN uv sync --frozen --no-install-project
 # Copy the rest of the application
 COPY . .
 
-# Ensure downloads directory exists
-RUN mkdir -p downloads temp_downloads
+# Ensure downloads and config directories exist
+RUN mkdir -p downloads temp_downloads config
 
 # Expose the port FastAPI runs on
 EXPOSE 8000

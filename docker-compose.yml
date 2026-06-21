@@ -6,5 +6,5 @@ services:
       - "8000:8000"
     volumes:
       - ./downloads:/app/downloads
-      - ./config.json:/app/config.json
+      - ./config:/app/config
     restart: unless-stopped

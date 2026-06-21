@@ -1,7 +1,8 @@
 import json
 import os
 
-CONFIG_FILE = "config.json"
+CONFIG_DIR = "config"
+CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 
 DEFAULT_CONFIG = {
     "download_path": "downloads",
@@ -10,6 +11,9 @@ DEFAULT_CONFIG = {
 }
 
 def load_config():
+    if not os.path.exists(CONFIG_DIR):
+        os.makedirs(CONFIG_DIR)
+        
     if not os.path.exists(CONFIG_FILE):
         save_config(DEFAULT_CONFIG)
         return DEFAULT_CONFIG
