@@ -25,6 +25,22 @@ def save_history(history):
 def add_to_history(client_id, url, title, thumbnail, format_type, action, filename=None):
     history = load_history()
     
+    # Check if entry already exists (same client, url, and action)
+    for i, entry in enumerate(history):
+        if entry["client_id"] == client_id and entry["url"] == url and entry["action"] == action:
+            # Update existing entry
+            entry["timestamp"] = datetime.now().isoformat()
+            entry["title"] = title
+            entry["thumbnail"] = thumbnail
+            entry["format"] = format_type
+            entry["filename"] = filename
+            
+            # Move to front
+            history.pop(i)
+            history.insert(0, entry)
+            save_history(history)
+            return entry
+
     entry = {
         "id": str(uuid.uuid4()),
         "client_id": client_id,

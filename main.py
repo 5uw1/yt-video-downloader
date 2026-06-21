@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query, Body
+from fastapi import FastAPI, HTTPException, Query, Body, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel
@@ -6,6 +6,7 @@ import uvicorn
 import os
 import shutil
 import httpx
+import urllib.parse
 from downloader import Downloader
 from config_manager import get_setting, load_config, save_config
 import history_manager
@@ -85,23 +86,75 @@ async def download(
             raise HTTPException(status_code=400, detail=result.get("error", "Download failed"))
 
 @app.get("/api/proxy")
-async def proxy_stream(url: str = Query(...)):
-    async def stream_generator():
-        try:
-            async with httpx.AsyncClient() as client:
-                async with client.stream("GET", url, follow_redirects=True) as response:
-                    async for chunk in response.aiter_bytes():
-                        yield chunk
-        except Exception as e:
-            print(f"Proxy error: {e}")
-
-    # Try to determine a reasonable media type, default to video/mp4
-    media_type = "video/mp4"
-    if "googlevideo.com" in url:
-        if "mime=audio" in url:
-            media_type = "audio/mpeg"
+async def proxy_stream(request: Request, url: str = Query(...)):
+    print(f"Proxying stream for URL: {url[:100]}...")
     
-    return StreamingResponse(stream_generator(), media_type=media_type)
+    # Headers to mimic a real browser/client, important for YouTube
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "*/*",
+        "Accept-Encoding": "identity", # Important for streaming
+        "Connection": "keep-alive",
+    }
+    
+    # Pass range header if present
+    range_header = request.headers.get("Range")
+    if range_header:
+        headers["Range"] = range_header
+
+    async def stream_generator(client, response):
+        try:
+            async for chunk in response.aiter_bytes():
+                yield chunk
+        except Exception as e:
+            print(f"Proxy generator error: {e}")
+        finally:
+            await response.aclose()
+            await client.aclose()
+
+    # Try to determine a reasonable media type from the URL
+    media_type = "video/mp4"
+    try:
+        parsed_url = urllib.parse.urlparse(url)
+        query_params = urllib.parse.parse_qs(parsed_url.query)
+        if 'mime' in query_params:
+            media_type = query_params['mime'][0]
+        elif "mime=audio" in url:
+            media_type = "audio/mpeg"
+    except Exception:
+        pass
+    
+    # Increase timeout for slow streams
+    timeout = httpx.Timeout(10.0, connect=30.0, read=None, write=30.0)
+    client = httpx.AsyncClient(timeout=timeout)
+    
+    try:
+        # Let's use the standard way but ensure we pass headers back
+        req = client.build_request("GET", url, headers=headers)
+        resp = await client.send(req, stream=True, follow_redirects=True)
+        
+        print(f"Proxy response status: {resp.status_code}")
+        
+        # Merge important headers from YouTube response
+        response_headers = {
+            "Accept-Ranges": "bytes",
+            "Content-Type": media_type,
+        }
+        
+        if "Content-Range" in resp.headers:
+            response_headers["Content-Range"] = resp.headers["Content-Range"]
+        if "Content-Length" in resp.headers:
+            response_headers["Content-Length"] = resp.headers["Content-Length"]
+            
+        return StreamingResponse(
+            stream_generator(client, resp), 
+            status_code=resp.status_code,
+            headers=response_headers
+        )
+    except Exception as e:
+        await client.aclose()
+        print(f"Proxy setup error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/files")
 async def list_files():

@@ -36,7 +36,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentVideoData = null;
     let clientId = localStorage.getItem('clientId');
     if (!clientId) {
-        clientId = crypto.randomUUID();
+        try {
+            if (window.crypto && window.crypto.randomUUID) {
+                clientId = window.crypto.randomUUID();
+            } else {
+                clientId = Date.now().toString(36) + Math.random().toString(36).substring(2);
+            }
+        } catch (e) {
+            clientId = Date.now().toString(36) + Math.random().toString(36).substring(2);
+        }
         localStorage.setItem('clientId', clientId);
     }
 
@@ -96,8 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Get Video Info
-    getInfoBtn.addEventListener('click', async () => {
-        const url = urlInput.value.trim();
+    const getInfo = async (url, autoPlay = false) => {
         if (!url) {
             showStatus('Please enter a URL', 'error');
             return;
@@ -125,6 +132,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 videoInfo.classList.remove('hidden');
                 actionButtons.classList.remove('hidden');
                 status.classList.add('hidden');
+
+                if (autoPlay) {
+                    const format = document.querySelector('input[name="format"]:checked').value;
+                    const streamUrl = format === 'video' ? data.stream_url : (data.audio_stream_url || data.stream_url);
+                    if (streamUrl) {
+                        showPlayback(streamUrl, format, true);
+                        recordHistory(data, format, 'stream');
+                    }
+                }
             }
         } catch (err) {
             showStatus('Failed to connect to server', 'error');
@@ -132,10 +148,32 @@ document.addEventListener('DOMContentLoaded', () => {
             getInfoBtn.disabled = false;
             getInfoBtn.classList.remove('opacity-50');
         }
-    });
+    };
+
+    getInfoBtn.addEventListener('click', () => getInfo(urlInput.value.trim()));
+
+    const recordHistory = (data, format, action) => {
+        fetch('/api/history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                client_id: clientId,
+                url: data.url,
+                title: data.title,
+                thumbnail: data.thumbnail,
+                format: format,
+                action: action
+            })
+        }).then(response => {
+            if (response.ok) loadHistory();
+        }).catch(err => {
+            console.error('Failed to record history', err);
+        });
+    };
 
     // Stream Video
     streamBtn.addEventListener('click', async () => {
+        console.log('Stream button clicked');
         if (!currentVideoData) {
             showStatus('Video data not available', 'error');
             return;
@@ -149,26 +187,16 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Record history for stream
-        try {
-            await fetch('/api/history', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    client_id: clientId,
-                    url: currentVideoData.url,
-                    title: currentVideoData.title,
-                    thumbnail: currentVideoData.thumbnail,
-                    format: format,
-                    action: 'stream'
-                })
-            });
-            loadHistory();
-        } catch (err) {
-            console.error('Failed to record stream history', err);
-        }
-        
+        showStatus('Starting stream...', 'info');
+        console.log('Starting stream playback...');
         showPlayback(url, format, true);
+        
+        // Hide status after a bit
+        setTimeout(() => {
+            if (status.textContent === 'Starting stream...') status.classList.add('hidden');
+        }, 3000);
+
+        recordHistory(currentVideoData, format, 'stream');
     });
 
     // Download to Local
@@ -289,24 +317,36 @@ document.addEventListener('DOMContentLoaded', () => {
         mediaContainer.innerHTML = '';
         let mediaElement;
 
-        if (format === 'video') {
+        const mediaFormat = format.toLowerCase();
+
+        if (mediaFormat === 'video' || url.toLowerCase().endsWith('.mp4')) {
             mediaElement = document.createElement('video');
             mediaElement.controls = true;
             mediaElement.autoplay = true;
             mediaElement.className = 'w-full rounded-lg';
-            const source = document.createElement('source');
-            source.src = mediaUrl;
-            source.type = 'video/mp4';
-            mediaElement.appendChild(source);
+            
+            mediaElement.onerror = () => {
+                console.error('Media playback error');
+                showStatus('Error playing media. This format might not be supported by your browser.', 'error');
+            };
+
+            mediaElement.src = mediaUrl;
+            mediaElement.load();
+            mediaElement.play().catch(e => console.log("Autoplay blocked or failed", e));
         } else {
             mediaElement = document.createElement('audio');
             mediaElement.controls = true;
             mediaElement.autoplay = true;
             mediaElement.className = 'w-full mt-4';
-            const source = document.createElement('source');
-            source.src = mediaUrl;
-            source.type = 'audio/mpeg';
-            mediaElement.appendChild(source);
+            
+            mediaElement.onerror = () => {
+                console.error('Media playback error');
+                showStatus('Error playing audio.', 'error');
+            };
+
+            mediaElement.src = mediaUrl;
+            mediaElement.load();
+            mediaElement.play().catch(e => console.log("Autoplay blocked or failed", e));
         }
 
         mediaContainer.appendChild(mediaElement);
@@ -394,12 +434,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 itemEl.onclick = async () => {
                     urlInput.value = item.url;
+                    // Set format radio button
+                    const formatValue = (item.format || 'video').toLowerCase();
+                    const formatRadio = document.querySelector(`input[name="format"][value="${formatValue}"]`);
+                    if (formatRadio) formatRadio.checked = true;
+
                     // If it was a saved file, try to play it directly
                     if (item.action === 'save' && item.filename) {
                         showPlayback(item.filename, item.format);
                     } else {
-                        // Otherwise, get info first
-                        getInfoBtn.click();
+                        // Otherwise, get info first and autoplay
+                        getInfo(item.url, true);
                     }
                 };
                 
