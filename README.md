@@ -6,10 +6,11 @@ A lightweight, user-friendly web application to download YouTube videos as video
 
 - **YouTube URL Input:** Easily paste URLs from your clipboard.
 - **Video/Audio Support:** Choose between MP4 video or MP3 audio.
-- **Dual Download Options:**
-  - **Download to Device:** Streams the file directly to your browser.
-  - **Save to Server:** Saves the file to the server's storage and allows instant playback.
-- **In-App Playback:** Play saved videos or audio directly within the application.
+- **Triple Playback/Download Options:**
+  - **Stream in App:** Watch or listen to media directly in the browser without downloading to the server.
+  - **Download to Device:** Streams the file to your browser for local saving.
+  - **Save to Server:** Saves the file to the server's storage for persistent access.
+- **In-App Playback:** Play saved or streaming media directly within the application.
 - **Persistent Settings:** Configure the server-side download path via the settings menu.
 - **Dark/Light Mode:** Full support for system themes and manual toggling.
 - **Docker Support:** Ready to be deployed as a container.

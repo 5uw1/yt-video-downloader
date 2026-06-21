@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pasteBtn = document.getElementById('pasteBtn');
     const getInfoBtn = document.getElementById('getInfoBtn');
     const actionButtons = document.getElementById('actionButtons');
+    const streamBtn = document.getElementById('streamBtn');
     const downloadBtn = document.getElementById('downloadBtn');
     const saveServerBtn = document.getElementById('saveServerBtn');
     
@@ -126,6 +127,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Stream Video
+    streamBtn.addEventListener('click', () => {
+        if (!currentVideoData) {
+            showStatus('Video data not available', 'error');
+            return;
+        }
+        
+        const format = document.querySelector('input[name="format"]:checked').value;
+        const url = format === 'video' ? currentVideoData.stream_url : (currentVideoData.audio_stream_url || currentVideoData.stream_url);
+        
+        if (!url) {
+            showStatus('Stream URL not available', 'error');
+            return;
+        }
+        
+        showPlayback(url, format, true);
+    });
+
     // Download to Local
     downloadBtn.addEventListener('click', async () => {
         const format = document.querySelector('input[name="format"]:checked').value;
@@ -225,9 +244,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const showPlayback = (filePath, format) => {
-        const filename = filePath.split('/').pop();
-        const mediaUrl = `/api/media/${encodeURIComponent(filename)}`;
+    const showPlayback = (url, format, isStream = false) => {
+        let mediaUrl;
+        if (isStream) {
+            mediaUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
+        } else {
+            mediaUrl = `/api/media/${encodeURIComponent(url.split('/').pop())}`;
+        }
         
         mediaContainer.innerHTML = '';
         let mediaElement;
@@ -235,6 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (format === 'video') {
             mediaElement = document.createElement('video');
             mediaElement.controls = true;
+            mediaElement.autoplay = true;
             mediaElement.className = 'w-full rounded-lg';
             const source = document.createElement('source');
             source.src = mediaUrl;
@@ -243,6 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             mediaElement = document.createElement('audio');
             mediaElement.controls = true;
+            mediaElement.autoplay = true;
             mediaElement.className = 'w-full mt-4';
             const source = document.createElement('source');
             source.src = mediaUrl;

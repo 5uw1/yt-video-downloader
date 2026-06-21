@@ -1,10 +1,11 @@
 from fastapi import FastAPI, HTTPException, Query, Body
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 import uvicorn
 import os
 import shutil
+import httpx
 from downloader import Downloader
 from config_manager import get_setting, load_config, save_config
 
@@ -59,6 +60,25 @@ async def download(
             )
         else:
             raise HTTPException(status_code=400, detail=result.get("error", "Download failed"))
+
+@app.get("/api/proxy")
+async def proxy_stream(url: str = Query(...)):
+    async def stream_generator():
+        try:
+            async with httpx.AsyncClient() as client:
+                async with client.stream("GET", url, follow_redirects=True) as response:
+                    async for chunk in response.aiter_bytes():
+                        yield chunk
+        except Exception as e:
+            print(f"Proxy error: {e}")
+
+    # Try to determine a reasonable media type, default to video/mp4
+    media_type = "video/mp4"
+    if "googlevideo.com" in url:
+        if "mime=audio" in url:
+            media_type = "audio/mpeg"
+    
+    return StreamingResponse(stream_generator(), media_type=media_type)
 
 @app.get("/api/files")
 async def list_files():

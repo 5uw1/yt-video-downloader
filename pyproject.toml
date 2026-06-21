@@ -1,12 +1,13 @@
 [project]
 name = "youtubedownloader"
 version = "0.1.0"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "fastapi",
     "uvicorn",
     "yt-dlp",
-    "pydantic"
+    "pydantic",
+    "httpx>=0.28.1",
 ]
 
 [build-system]
