@@ -33,6 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const historyList = document.getElementById('historyList');
     const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 
+    const resolutionContainer = document.getElementById('resolutionContainer');
+    const resolutionSelect = document.getElementById('resolution');
+
     let currentVideoData = null;
     let clientId = localStorage.getItem('clientId');
     if (!clientId) {
@@ -133,6 +136,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 actionButtons.classList.remove('hidden');
                 status.classList.add('hidden');
 
+                // Populate resolutions
+                resolutionSelect.innerHTML = '<option value="">Best Available</option>';
+                if (data.resolutions && data.resolutions.length > 0) {
+                    data.resolutions.forEach(res => {
+                        const option = document.createElement('option');
+                        option.value = res;
+                        option.textContent = res + 'p';
+                        resolutionSelect.appendChild(option);
+                    });
+                }
+
+                const format = document.querySelector('input[name="format"]:checked').value;
+                if (format === 'video') {
+                    resolutionContainer.classList.remove('invisible');
+                }
+
                 if (autoPlay) {
                     const format = document.querySelector('input[name="format"]:checked').value;
                     const streamUrl = format === 'video' ? data.stream_url : (data.audio_stream_url || data.stream_url);
@@ -202,12 +221,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // Download to Local
     downloadBtn.addEventListener('click', async () => {
         const format = document.querySelector('input[name="format"]:checked').value;
+        const resolution = resolutionSelect.value;
         const url = urlInput.value.trim();
         const title = currentVideoData ? currentVideoData.title : '';
         const thumbnail = currentVideoData ? currentVideoData.thumbnail : '';
         
         showStatus('Preparing download...', 'info');
-        window.location.href = `/download?url=${encodeURIComponent(url)}&format=${format}&action=download&client_id=${clientId}&title=${encodeURIComponent(title)}&thumbnail=${encodeURIComponent(thumbnail)}`;
+        let downloadUrl = `/download?url=${encodeURIComponent(url)}&format=${format}&action=download&client_id=${clientId}&title=${encodeURIComponent(title)}&thumbnail=${encodeURIComponent(thumbnail)}`;
+        if (format === 'video' && resolution) {
+            downloadUrl += `&resolution=${resolution}`;
+        }
+        window.location.href = downloadUrl;
         
         // Refresh history after a short delay since download is a navigation
         setTimeout(loadHistory, 2000);
@@ -216,13 +240,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Save to Server
     saveServerBtn.addEventListener('click', async () => {
         const format = document.querySelector('input[name="format"]:checked').value;
+        const resolution = resolutionSelect.value;
         const url = urlInput.value.trim();
         const title = currentVideoData ? currentVideoData.title : '';
         const thumbnail = currentVideoData ? currentVideoData.thumbnail : '';
         
         showStatus('Saving to server...', 'info');
         try {
-            const response = await fetch(`/download?url=${encodeURIComponent(url)}&format=${format}&action=save&client_id=${clientId}&title=${encodeURIComponent(title)}&thumbnail=${encodeURIComponent(thumbnail)}`);
+            let saveUrl = `/download?url=${encodeURIComponent(url)}&format=${format}&action=save&client_id=${clientId}&title=${encodeURIComponent(title)}&thumbnail=${encodeURIComponent(thumbnail)}`;
+            if (format === 'video' && resolution) {
+                saveUrl += `&resolution=${resolution}`;
+            }
+            const response = await fetch(saveUrl);
             const data = await response.json();
             
             if (data.success) {
@@ -466,6 +495,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 showStatus('Failed to clear history', 'error');
             }
         }
+    });
+
+    // Handle Format change visibility
+    document.querySelectorAll('input[name="format"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            if (e.target.value === 'video' && currentVideoData) {
+                resolutionContainer.classList.remove('invisible');
+            } else {
+                resolutionContainer.classList.add('invisible');
+            }
+        });
     });
 
     loadFiles();

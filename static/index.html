@@ -60,17 +60,25 @@
                 </div>
             </div>
 
-            <div class="mb-6">
-                <span class="block text-sm font-medium mb-2">Format</span>
-                <div class="flex space-x-4">
-                    <label class="flex items-center cursor-pointer">
-                        <input type="radio" name="format" value="video" checked class="hidden peer">
-                        <div class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg peer-checked:bg-blue-500 peer-checked:text-white transition-colors">Video (MP4)</div>
-                    </label>
-                    <label class="flex items-center cursor-pointer">
-                        <input type="radio" name="format" value="audio" class="hidden peer">
-                        <div class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg peer-checked:bg-blue-500 peer-checked:text-white transition-colors">Audio (MP3)</div>
-                    </label>
+            <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <span class="block text-sm font-medium mb-2">Format</span>
+                    <div class="flex space-x-4">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="format" value="video" checked class="hidden peer">
+                            <div class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg peer-checked:bg-blue-500 peer-checked:text-white transition-colors">Video (MP4)</div>
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="format" value="audio" class="hidden peer">
+                            <div class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg peer-checked:bg-blue-500 peer-checked:text-white transition-colors">Audio (MP3)</div>
+                        </label>
+                    </div>
+                </div>
+                <div id="resolutionContainer" class="invisible">
+                    <label for="resolution" class="block text-sm font-medium mb-2">Resolution</label>
+                    <select id="resolution" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Best Available</option>
+                    </select>
                 </div>
             </div>
 

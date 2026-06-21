@@ -53,10 +53,11 @@ async def download(
     action: str = Query("download"),
     client_id: str = Query(None),
     title: str = Query(None),
-    thumbnail: str = Query(None)
+    thumbnail: str = Query(None),
+    resolution: str = Query(None)
 ):
     if action == "save":
-        result = downloader.download(url, format_type=format)
+        result = downloader.download(url, format_type=format, resolution=resolution)
         if result["success"] and client_id:
             history_manager.add_to_history(
                 client_id, url, title or os.path.basename(result["filename"]), 
@@ -69,7 +70,7 @@ async def download(
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir)
             
-        result = downloader.download(url, format_type=format, save_path=temp_dir)
+        result = downloader.download(url, format_type=format, save_path=temp_dir, resolution=resolution)
         if result["success"]:
             file_path = result["filename"]
             filename = os.path.basename(file_path)

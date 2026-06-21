@@ -10,14 +10,23 @@ class Downloader:
         ydl_opts = {
             'quiet': True,
             'no_warnings': True,
-            'extractor_args': {'youtube': {'player_client': ['android']}},
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             try:
                 info = ydl.extract_info(url, download=False)
-                
-                # Find best combined format for streaming
                 formats = info.get('formats', [])
+                
+                # Available resolutions
+                resolutions = []
+                res_seen = set()
+                for f in formats:
+                    h = f.get('height')
+                    if h and h not in res_seen:
+                        resolutions.append(h)
+                        res_seen.add(h)
+                resolutions.sort(reverse=True)
+
+                # Find best combined format for streaming
                 stream_url = None
                 
                 # Prefer combined formats (video+audio) for simple streaming
@@ -43,12 +52,13 @@ class Downloader:
                     "uploader": info.get('uploader'),
                     "url": url,
                     "stream_url": stream_url,
-                    "audio_stream_url": audio_stream_url
+                    "audio_stream_url": audio_stream_url,
+                    "resolutions": resolutions
                 }
             except Exception as e:
                 return {"error": str(e)}
 
-    def download(self, url, format_type='video', save_path=None):
+    def download(self, url, format_type='video', resolution=None, save_path=None):
         if not save_path:
             save_path = get_setting('download_path')
         
@@ -57,7 +67,6 @@ class Downloader:
 
         ydl_opts = {
             'outtmpl': os.path.join(save_path, '%(title)s.%(ext)s'),
-            'extractor_args': {'youtube': {'player_client': ['android']}},
         }
 
         if format_type == 'audio':
@@ -70,9 +79,15 @@ class Downloader:
                 }],
             })
         else:
-            ydl_opts.update({
-                'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-            })
+            if resolution:
+                res_filter = f"[height<={resolution}]"
+                ydl_opts.update({
+                    'format': f'bestvideo{res_filter}[ext=mp4]+bestaudio[ext=m4a]/best{res_filter}[ext=mp4]/best{res_filter}',
+                })
+            else:
+                ydl_opts.update({
+                    'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+                })
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             try:

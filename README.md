@@ -6,6 +6,7 @@ A lightweight, user-friendly web application to download YouTube videos as video
 
 - **YouTube URL Input:** Easily paste URLs from your clipboard.
 - **Video/Audio Support:** Choose between MP4 video or MP3 audio.
+- **Resolution Selection:** Select your preferred video quality (e.g., 1080p, 720p, 480p) for downloads.
 - **Triple Playback/Download Options:**
   - **Stream in App:** Watch or listen to media directly in the browser without downloading to the server.
   - **Download to Device:** Streams the file to your browser for local saving.
