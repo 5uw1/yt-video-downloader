@@ -48,6 +48,28 @@ docker compose up -d
 
 The app will be available at `http://localhost:8000`.
 
+### Deploying from Docker Hub
+
+To run the application on another computer without cloning the source code, you can use the following `docker-compose.yml` example:
+
+```yaml
+services:
+  youtube-downloader:
+    image: 5uw1/yb-video-downloader:latest
+    container_name: youtube-downloader
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./downloads:/app/downloads
+      - ./config.json:/app/config.json
+    restart: unless-stopped
+```
+
+Once you have this file, simply run:
+```bash
+docker compose up -d
+```
+
 ### Running Locally
 
 1. Install dependencies:
