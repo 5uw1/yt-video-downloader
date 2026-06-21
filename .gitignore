@@ -40,3 +40,4 @@ static/downloads/
 
 # Junie
 .junie/
+/config/history.json
