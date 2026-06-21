@@ -22,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const mediaContainer = document.getElementById('mediaContainer');
     const closePlayback = document.getElementById('closePlayback');
 
+    const filesList = document.getElementById('filesList');
+
     const settingsBtn = document.getElementById('settingsBtn');
     const settingsModal = document.getElementById('settingsModal');
     const closeSettings = document.getElementById('closeSettings');
@@ -145,6 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (data.success) {
                 showStatus(`Saved successfully: ${data.filename}`, 'success');
+                loadFiles();
                 showPlayback(data.filename, format);
             } else {
                 showStatus(`Error: ${data.error}`, 'error');
@@ -154,9 +157,77 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const loadFiles = async () => {
+        try {
+            const response = await fetch('/api/files');
+            const files = await response.json();
+            
+            if (files.length === 0) {
+                filesList.innerHTML = '<p class="text-gray-500 italic">No files saved on server yet.</p>';
+                return;
+            }
+
+            filesList.innerHTML = '';
+            files.forEach(file => {
+                const isVideo = file.toLowerCase().endsWith('.mp4');
+                const fileItem = document.createElement('div');
+                fileItem.className = 'flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg group';
+                
+                const fileInfo = document.createElement('div');
+                fileInfo.className = 'flex items-center space-x-3 overflow-hidden';
+                
+                const icon = document.createElement('div');
+                icon.innerHTML = isVideo ? 
+                    '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>' :
+                    '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>';
+                
+                const fileName = document.createElement('span');
+                fileName.className = 'text-sm font-medium truncate';
+                fileName.textContent = file;
+                fileName.title = file;
+
+                fileInfo.appendChild(icon);
+                fileInfo.appendChild(fileName);
+
+                const actions = document.createElement('div');
+                actions.className = 'flex space-x-2 shrink-0';
+
+                const playBtn = document.createElement('button');
+                playBtn.className = 'p-1 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 rounded transition-colors';
+                playBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+                playBtn.onclick = () => showPlayback(file, isVideo ? 'video' : 'audio');
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors';
+                deleteBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>';
+                deleteBtn.onclick = async () => {
+                    if (confirm(`Are you sure you want to delete "${file}"?`)) {
+                        try {
+                            const delResponse = await fetch(`/api/files/${encodeURIComponent(file)}`, { method: 'DELETE' });
+                            if (delResponse.ok) {
+                                loadFiles();
+                            }
+                        } catch (err) {
+                            showStatus('Failed to delete file', 'error');
+                        }
+                    }
+                };
+
+                actions.appendChild(playBtn);
+                actions.appendChild(deleteBtn);
+
+                fileItem.appendChild(fileInfo);
+                fileItem.appendChild(actions);
+                filesList.appendChild(fileItem);
+            });
+        } catch (err) {
+            console.error('Failed to load files:', err);
+        }
+    };
+
     const showPlayback = (filePath, format) => {
         const filename = filePath.split('/').pop();
-        const mediaUrl = `/downloads/${encodeURIComponent(filename)}`;
+        const mediaUrl = `/api/media/${encodeURIComponent(filename)}`;
         
         mediaContainer.innerHTML = '';
         let mediaElement;
@@ -216,6 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 showStatus('Settings saved', 'success');
                 settingsModal.classList.add('hidden');
+                loadFiles();
             } else {
                 showStatus('Failed to save settings', 'error');
             }
@@ -223,4 +295,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showStatus('Failed to connect to server', 'error');
         }
     });
+
+    loadFiles();
 });

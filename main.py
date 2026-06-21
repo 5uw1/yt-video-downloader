@@ -1,9 +1,10 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Body
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
 import uvicorn
 import os
+import shutil
 from downloader import Downloader
 from config_manager import get_setting, load_config, save_config
 
@@ -13,14 +14,13 @@ downloader = Downloader()
 class Settings(BaseModel):
     download_path: str
 
-# Create static and downloads directory if they don't exist
+# Create static directory if it doesn't exist
 for d in ["static", "downloads"]:
     if not os.path.exists(d):
         os.makedirs(d)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
-app.mount("/downloads", StaticFiles(directory="downloads"), name="downloads")
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
@@ -55,11 +55,38 @@ async def download(
             filename = os.path.basename(file_path)
             return FileResponse(
                 path=file_path, 
-                filename=filename,
-                background=None # We might want to delete it after sending, but FileResponse doesn't easily support that without extra logic
+                filename=filename
             )
         else:
             raise HTTPException(status_code=400, detail=result.get("error", "Download failed"))
+
+@app.get("/api/files")
+async def list_files():
+    download_path = get_setting("download_path")
+    if not os.path.exists(download_path):
+        return []
+    files = []
+    for f in os.listdir(download_path):
+        if os.path.isfile(os.path.join(download_path, f)) and not f.startswith('.'):
+            files.append(f)
+    return sorted(files)
+
+@app.get("/api/media/{filename}")
+async def serve_media(filename: str):
+    download_path = get_setting("download_path")
+    file_path = os.path.join(download_path, filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path)
+
+@app.delete("/api/files/{filename}")
+async def delete_file(filename: str):
+    download_path = get_setting("download_path")
+    file_path = os.path.join(download_path, filename)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        return {"success": True}
+    raise HTTPException(status_code=404, detail="File not found")
 
 @app.get("/settings")
 async def get_settings():
