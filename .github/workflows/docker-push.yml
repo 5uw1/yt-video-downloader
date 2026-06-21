@@ -9,9 +9,25 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Validate Docker Hub secrets
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [ -z "$DOCKERHUB_USERNAME" ]; then
+            echo "::error::DOCKERHUB_USERNAME secret is missing. Please add it to GitHub Settings > Secrets and variables > Actions"
+            exit 1
+          fi
+          if [ -z "$DOCKERHUB_TOKEN" ]; then
+            echo "::error::DOCKERHUB_TOKEN secret is missing. Please add it to GitHub Settings > Secrets and variables > Actions"
+            exit 1
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
