@@ -44,5 +44,5 @@ jobs:
           context: .
           push: true
           tags: |
-            5uw1/fb-video-downloader:latest
-            5uw1/fb-video-downloader:${{ github.sha }}
+            5uw1/yb-video-downloader:latest
+            5uw1/yb-video-downloader:${{ github.sha }}
